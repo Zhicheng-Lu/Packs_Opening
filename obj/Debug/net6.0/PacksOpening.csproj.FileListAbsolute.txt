@@ -1,0 +1,8 @@
+D:\Web_Apps\DotnetAPP\Sample\obj\Debug\net6.0\PacksOpening.csproj.AssemblyReference.cache
+D:\Web_Apps\DotnetAPP\Sample\obj\Debug\net6.0\PacksOpening.GeneratedMSBuildEditorConfig.editorconfig
+D:\Web_Apps\DotnetAPP\Sample\obj\Debug\net6.0\PacksOpening.AssemblyInfoInputs.cache
+D:\Web_Apps\DotnetAPP\Sample\obj\Debug\net6.0\PacksOpening.AssemblyInfo.cs
+D:\Web_Apps\DotnetAPP\Sample\obj\Debug\net6.0\PacksOpening.csproj.CoreCompileInputs.cache
+D:\Web_Apps\DotnetAPP\Sample\obj\Debug\net6.0\PacksOpening.MvcApplicationPartsAssemblyInfo.cache
+D:\Web_Apps\DotnetAPP\Sample\obj\Debug\net6.0\PacksOpening.RazorAssemblyInfo.cache
+D:\Web_Apps\DotnetAPP\Sample\obj\Debug\net6.0\PacksOpening.RazorAssemblyInfo.cs

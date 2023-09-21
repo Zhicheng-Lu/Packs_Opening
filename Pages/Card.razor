@@ -1,0 +1,100 @@
+﻿@using System.Data;
+@using System.Data.SqlClient;
+@using System.Diagnostics;
+
+@{
+    connection.con.Open();
+    string sql = $"SELECT * FROM [PacksOpening].[dbo].[Players] WHERE id={player_id}";
+    var results = connection.query(sql);
+    while (results.Read())
+    {
+        int rarity = Int32.Parse(results["rarity"].ToString());
+        int rating = Int32.Parse(results["rating"].ToString());
+        string type;
+        string rarity_img_src;
+        if (rarity == 0 || rarity == 1 || rarity == 3 || rarity == 18)
+        {
+            if (rating < 65) type = "bronze";
+            else if (rating < 75) type = "silver";
+            else type = "gold";
+            rarity_img_src = $"images/rarities/{rarity}_{type}.webp";
+        }
+        else {
+            rarity_img_src = $"images/rarities/{rarity}.webp";
+        }
+
+        int club = Int32.Parse(results["club"].ToString());
+        string club_img_src = "";
+        if (club == 114605) club_img_src = $"images/leagues/{results["league"]}.png";
+        else club_img_src = $"images/clubs/{results["club"]}.png";
+
+    <div style="width: 109px; height: 165px; text-align: center; color: @(colors[rarity]);">
+        <div style="width: 109px; position: absolute;">
+            <img style="width: 100%;" src="@(rarity_img_src)" />
+            <img style="position: absolute; top: 16px; left: 35px; width: 65px;" src="images/players/@(player_id).png" />
+            <div style="position: absolute; top: 85px; width: 100%; text-align: center; font-size: 9pt;"><b>@(results["commonName"])</b></div>
+            <div style="position: absolute; top: 16px; left: 0px; width: 55px; text-align: center; font-size: 10pt;"><b>@(results["rating"])</b></div>
+            <div style="position: absolute; top: 34px; left: 0px; width: 55px; text-align: center; font-size: 7pt;">@(results["position"])</div>
+            <img style="position: absolute; top: 51px; left: 20px; height: 10px;" src="images/nations/@(results["nation"]).png" />
+            <img style="position: absolute; top: 66px; left: 20px; height: 17px;" src="@(club_img_src)" />
+                @{
+                    string[,] attributes = { { "pace", "PAC" }, { "shooting", "SHO" }, { "passing", "PAS" }, { "dribbling", "DRI" }, { "defending", "DEF" }, { "physicality", "PHY" } };
+                    if (results["position"].ToString() == "GK") {
+                        attributes[0, 1] = "DIV";
+                        attributes[1, 1] = "HAN";
+                        attributes[2, 1] = "KIC";
+                        attributes[3, 1] = "REF";
+                        attributes[4, 1] = "SPE";
+                        attributes[5, 1] = "POS";
+                    }
+
+                for (int i = 0; i <6; i++) {
+                    int top = 105 + (i % 3) * 10;
+                    int left = 10 + (int)(i / 3) * 45;
+                    <div style="position: absolute; top: @(top)px; left: @(left)px; width: 55px; text-align: center; font-size: 6pt;">
+                        <div style="display: inline-block; width: 8px; text-align: center;">
+                            <b>@(results[attributes[i,0]])</b>
+                        </div>
+                        <div style="width: 25px; text-align: center; display: inline-block;">
+                            <b>@(attributes[i,1])</b>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+    }
+
+    connection.con.Close();
+}
+
+@code {
+    [Parameter]
+    public int? player_id { get; set; }
+
+    Connection connection = new Connection();
+
+    public class Connection
+    {
+        private string connectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=master;Integrated Security=True;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False;MultipleActiveResultSets=true";
+        public SqlConnection con;
+
+        public Connection()
+        {
+            con = new SqlConnection(connectionString);
+        }
+
+        public SqlDataReader query(string command)
+        {
+            SqlCommand cmd = new SqlCommand(command, con);
+
+            var reader = cmd.ExecuteReader();
+
+            return reader;
+        }
+    }
+
+    Dictionary<int, object> colors = new Dictionary<int, object> {
+        {0,"black"},{1,"black"},{5,"#FCE398"},{8,"white"},{11,"#FCE398"},{12,"black"},{16,"#FCE398"},{21,"#C4F750"},{22,"#95FBFF"},{25,"#00FFF6"},{28,"#C4F750"},{30,"white"},{42,"white"},{43,"white"},{45,"white"},{46,"white"},{47,"white"},{50,"white"},{51,"white"},{52,"white"},{53,"white"},{57,"white"},{58,"white"},{64,"#FCE398"},{65,"#FCE398"},{71,"#FCFF00"},{72,"white"},{76,"white"},{79,"#C4F750"},{85,"white"},{86,"white"},{87,"#ADBEB7"},{88,"#574B15"},{90,"#FCFF00"},{91,"#FCFF00"},{97,"white"},{105,"white"},{115,"white"},{118,"#FCE398"},{120,"#FCE398"},{124,"white"},{125,"white"},{126,"white"},{128,"white"},{129,"#574B15"},{130,"white"},{131,"white"},{132,"white"},{133,"#FCE398"},{134,"#FDC8FF"},{135,"#FCFF00"},{138,"white"},{139,"#00CFB7"},{145,"#574B15"},{146,"white"},{148,"white"},{150,"white"},{151,"white"},{152,"#574B15"},{153,"#574B15"},{154,"#FCE398"},{155,"#574B15"},{156,"black"},{159,"#FCE398"},{160,"white"},{161,"white"},{163,"white"},{164,"#FCE398"},{165,"white"},{166,"white"},{167,"white"},{170,"#574B15"},{171,"#644198"}
+    };
+}

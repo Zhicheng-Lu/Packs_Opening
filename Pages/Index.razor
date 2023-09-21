@@ -1,0 +1,185 @@
+﻿@page "/"
+@using System.Data;
+@using System.Data.SqlClient;
+@using System.Web;
+@using System.Text;
+@using System.Diagnostics;
+@using System.Text.Json;
+@{
+    connection.con.Open();
+    string sql = "SELECT isnull(MAX(pack_index),0) AS max_index FROM [PacksOpening].[dbo].[Packs]";
+    var results = connection.query(sql);
+    while (results.Read()) {
+        current_pack_index = Int32.Parse(results["max_index"].ToString()) + 1;
+    }
+}
+
+<PageTitle>Home</PageTitle>
+
+<div class="row">
+    <div class="col-25 offset-20" style="height: 100vh; overflow-y: scroll;">
+        <table>
+            <thead>
+                <tr>
+                    <td>Name</td>
+                    <td>Name</td>
+                    <td>Card</td>
+                    <td style="cursor: pointer;" @onclick="toggle_order">Frequency <i class="oi oi-@(order_by_appearance?"caret-bottom":"elevator")"></i></td>
+                </tr>
+            </thead>
+            <tbody>
+                @{
+                    string orderby_clause = order_by_appearance ? "appearance DESC, " : "";
+                    sql = $"SELECT PL.id, PL.name, COUNT(PA.pack_index) AS appearance FROM [PacksOpening].[dbo].[Players] AS PL LEFT JOIN [PacksOpening].[dbo].[Packs] AS PA ON PL.id=PA.player_id GROUP BY PL.id,PL.name,PL.rating,PL.rarity ORDER BY {orderby_clause}PL.rating DESC, PL.rarity DESC, PL.id ASC";
+                    results = connection.query(sql);
+                    int counter = 0;
+                    while (results.Read())
+                    {
+                        int id = Int32.Parse(results["id"].ToString());
+                        string normalized_name = HttpUtility.UrlDecode(HttpUtility.UrlEncode(results["name"].ToString(), Encoding.GetEncoding("iso-8859-7")));
+                        counter += 1;
+                        <tr style="cursor: pointer; color: @((active_cards.IndexOf(id)<0)?"black":"#0096FF")" @onclick="@(e => toggle_player(id))">
+                            <td>@(counter)</td>
+                            <td>@(normalized_name)</td>
+                            <td><Card player_id="@(id)" /></td>
+                            <td>@(results["appearance"])</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="col-50 offset-5">
+        <div style="height: 500px; margin-bottom: 100px;">
+            <div class="row">
+                <button style="visibility: @((active_cards.Count==10)?"visible":"hidden");" @onclick="confirm_pack">
+                    Confirm
+                </button>
+                @{
+                    foreach (var active_card in active_cards)
+                    {
+                        <div class="col-24"><Card player_id="@(active_card)" /></div>
+                    }
+                }
+            </div>
+        </div>
+        <div class="row">
+            @{
+                string sql1 = "SELECT DISTINCT(pack_index) AS p_index FROM [PacksOpening].[dbo].[Packs] ORDER BY pack_index DESC";
+                var results1 = connection.query(sql1);
+                while (results1.Read()) {
+                    int p_index = Int32.Parse(results1["p_index"].ToString());
+                    string sql2 = $"SELECT TOP 1 PL.id FROM [PacksOpening].[dbo].[Packs] AS PA LEFT JOIN [PacksOpening].[dbo].[Players] AS PL ON PA.player_id=PL.id WHERE PA.pack_index={results1["p_index"]} ORDER BY PL.rating DESC, PL.rarity DESC, PL.id ASC";
+                    var results2 = connection.query(sql2);
+                    while (results2.Read()) {
+                        <div class="col-24" @onclick="@(e => display_pack(p_index))" style="cursor: pointer;">
+                            <div style="width: 100%; text-align: center;">Pack @(p_index)</div>
+                            <Card player_id="@(Int32.Parse(results2["id"].ToString()))" />
+                        </div>
+                    }
+                }
+            }
+        </div>
+    </div>
+</div>
+
+<div class="modal" style="top: 5%; z-index: 9999; display: @(display_pack_index==-1?"none":"block")">
+    <div class="modal-content col-xxl-40 offset-xxl-40 col-xl-60 offset-xl-30 col-lg-80 offset-lg-20 col-md-100 offset-md-10">
+        <div class="modal-header">
+            <div class="row" style="width: 100%;">
+                <div class="col-40" style="text-align: right; visibility: @(display_pack_index==1?"hidden":"visible");">
+                    <span class="oi oi-chevron-left" style="cursor: pointer;" @onclick="@(e => display_pack(display_pack_index-1))"></span>
+                </div>
+                <div class="col-40" style="text-align: center;">Pack @display_pack_index</div>
+                <div class="col-40" style="text-align: left; visibility: @(display_pack_index==current_pack_index-1?"hidden":"visible");">
+                    <span class="oi oi-chevron-right" style="cursor: pointer;" @onclick="@(e => display_pack(display_pack_index+1))"></span>
+                </div>
+            </div>
+            
+            <span @onclick="@(e => display_pack(-1))" style="cursor: pointer; float: right;">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="row">
+                @{
+                    sql = $"SELECT PL.id FROM [PacksOpening].[dbo].[Packs] AS PA LEFT JOIN [PacksOpening].[dbo].[Players] AS PL ON PA.player_id=PL.id WHERE PA.pack_index={display_pack_index} ORDER BY PL.rating DESC, PL.rarity DESC, PL.id ASC";
+                    results = connection.query(sql);
+                    while (results.Read()) {
+                        <div class="col-24">
+                            <Card player_id="@(Int32.Parse(results["id"].ToString()))" />
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<style>
+    td {
+        border: 1px solid black;
+        text-align: center;
+    }
+</style>
+
+@{
+    connection.con.Close();
+}
+
+@code {
+    private List<int> active_cards = new List<int>();
+    private int current_pack_index = 1;
+    private int display_pack_index = -1;
+    private bool order_by_appearance = false;
+    static Connection connection = new Connection();
+
+    public class Connection
+    {
+        private string connectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=master;Integrated Security=True;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False;MultipleActiveResultSets=true";
+        public SqlConnection con;
+
+        public Connection()
+        {
+            con = new SqlConnection(connectionString);
+        }
+
+        public SqlDataReader query(string command)
+        {
+            SqlCommand cmd = new SqlCommand(command, con);
+
+            var reader = cmd.ExecuteReader();
+
+            return reader;
+        }
+    }
+
+    private void toggle_player(int id) {
+        if (active_cards.IndexOf(id) >= 0)
+        {
+            active_cards.Remove(id);
+        }
+        else if (active_cards.Count < 10) {
+            active_cards.Add(id);
+        }
+    }
+
+    private void confirm_pack() {
+        foreach(var active_card in active_cards) {
+            connection.con.Open();
+            String sql = $"INSERT INTO [PacksOpening].[dbo].[Packs] VALUES({current_pack_index}, {active_card})";
+            connection.query(sql);
+            connection.con.Close();
+        }
+
+        active_cards.Clear();
+    }
+
+    private void display_pack(int pack_index) {
+        display_pack_index = pack_index;
+    }
+
+    private void toggle_order() {
+        order_by_appearance = !order_by_appearance;
+    }
+}
